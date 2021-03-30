@@ -1,0 +1,503 @@
+---
+title: "<center> **<font size = 5>SIR 모형 소개 **</font> </center>"
+author: "방태모"
+date: "2021-03-30"
+output: 
+  rmdformats::robobook
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+<br>
+
+## 0 **Before start**
+***
+If you are familiar with English, go to [5 Reference](#anchor1). And this text is provided by [my Github repository](https://github.com/be-favorite/Tutorial_prophet)
+
+<br>
+
+## 1 **Introduction**
+***
+SIR 모형은 구획 모형(compartmental models)의 일종으로, 모집단(population)을 질병 상태와 (필요하다면) 다른 특성을 나타내는 구획으로 나눈다. 그리고, 이렇게 나뉜 각 구획간의 전이(transition)를 모형화하는 데에 수학적 방정식을 사용한다. 그래서, 구획 모형은 수학적 모형이라 표현하기도 한다. 이러한 구획 모형의 한 종류라 할 수 있는 SIR 모형은 전염병 모델링의 주춧돌 역할을 한다고 할 수 있다. 해당 모형에서 모집단에 포함되는 개인(individuals)들은 다음의 세 구획중 하나에 포함된다:
+
+* Susceptible ($S$): 민감군, i.e. 감염 가능 군
+* Infected ($I$): 감염군
+* Recovered ($R$): 회복군
+
+각 구획은 해당 구획의 개인이 평균적으로 취할 행동을 모형화 한다는 점에서 모집단 기반(population-based) 모형이라고도 한다. 아울러, 전염병의 경우 모집단의 모든 이들이 감염될 가능성이 있어 모집단 전체를 민감군으로 볼 수 있으므로, 모집단 기반 모형이라고 표현할 수 있다고 생각한다. SIR 모형은 실 생활에서 전염병의 유행을 모형화 하기에는 지나치게 간단한 모형이긴 하지만, SIR 모형을 초석으로 하여 더 복잡한 모형들을 설계할 수 있다. SIR 모형을 그림으로 간단하게 표현해보면 다음과 같다:
+
+<br>
+
+```{r SIR models, echo = FALSE, fig.cap = "출처: https://towardsdatascience.com/extending-the-basic-sir-model-b6b32b833d76", fig.align = "center", out.width = "80%"}
+knitr::include_graphics("./figure/SIR models.png")
+```
+
+SIR 모형에서 나뉘는 각 구획은 모수 $\lambda$, $\gamma$에 의해 전이된다. 해당 모수가 의미하는 바와 이를 추정하는 식은 잠시 뒤에 좀 더 정확하게 설명하겠다. 
+
+### 1.1 The assumptions of an basic SIR model {#anchor2}
+기본적인(basic) SIR 모형은 모집단에 대해 다음과 같이 3가지 사항을 가정하여 전염병 모델링을 수행한다.
+
+* 동질적 모집단: 각 구획의 개인들은 동일한 위험(hazards)에 노출됨
+* 충분히 잘 혼합된(well-mixed) 모집단: 감염 가능 군에 속하는 모든 이들의 감염 위험(risk)은 동일
+* 영구적 면역력(immunity): 전염병으로 부터 회복된 개인들의 면역력은 영구적
+
+기본적 SIR 모형에 포함되는 마지막 가정은 시뮬레이션 기간동안 모집단이 변하지 않고 면역력이 안정적인 경우에 좋은 예측력을 보일 것이다. 위 세 가지 가정으로부터 우리는 다음의 미분 방정식을 세울 수 있다:
+
+\begin{equation}
+
+\frac{dS}{dt} = - \beta S \frac{I}{N}
+
+\end{equation}
+\begin{equation}
+
+\frac{dI}{dt} = \beta S \frac{I}{N} - \gamma I
+
+\end{equation}
+
+\begin{equation}
+
+\frac{dR}{dt} = \gamma I
+
+\end{equation}
+
+여기서 $S$, $I$, $R$은 각 구획 민감군(susceptible), 감염군(infected), 회복군(recovered)에 속하는 사람의 수를 나타내며, $S+I+R = N$에 해당한다. 즉, $N$은 모집단의 크기라 할 수 있다. 그리고, $\gamma$는 회복률을 나타내며, 즉, 회복군의 변화량($\frac{dR}{dt}$)은 회복률 $\gamma$에 감염군의 수 $I$를 곱한 형태로 나타난다. $\beta$는 감염률을 나타낸다. $\beta$를 이용하면 민감군의 변화량($\frac{dS}{dt}$)은 감염률 $\beta$과 모집단의 크기 대비 감염군 수의 비율($\frac{I}{N}$)를 곱한 형태에 추가적으로 민감군의 수 $S$를 곱한 값으로 나타낼 수 있으며, 감염군의 변화량($\frac{dI}{dt}$)의 경우는 민감군의 변화량에 회복군의 변화량을 뺀 형태로 나타날 수 있다.
+
+### 1.2 기초감염 재생산수(basic reproduction number, $R_0$)
+기본 재생산 번호는 완전히 취약한 모집단에서 단일 감염 사례에 의해 발생하는 2차 감염의 평균 수입니다.
+
+기초감염 재생산수는 민감군에서 하나의 감염 사례(a single infected case)에 의해 야기되는 2차 감염자의 평균 수를 의미한다. SIR 모형에서 기초감염 재생산수는 다음과 같이 감염률 $\beta$에 회복률 $\gamma$를 나눈 형태로 계산된다:
+
+
+\begin{equation}
+
+R_0 = \frac{\beta}{\gamma}
+
+\end{equation}
+
+
+### 1.3 유효감염 재생산수(effective reproduction number, $R_{eff}$)
+만약 민감군이 시간에 따라 변화하는 경우에는 기초감염 재생산수가 아닌 유효감염 재생산수를 선호한다. 이는 유행 시기에 어떤 지점이 주어졌을 때, 하나의 감염 사례로부터 발생할 수 있는 2차 감염자의 평균 수를 의미한다.
+
+\begin{equation}
+
+R_{eff} = R_0 \frac{S}{N}
+
+\end{equation}
+
+### 1.4 감염력(force of infection, $\lambda$) 
+감염력이란, 단위시간 당 한 개인이 감염될 위험을 의미한다. 좀 더 풀어서 말하면, 민감군에 속하는 이들이 감염군으로 전이될 가능성을 의미한다. 감염력은 시간에 따라 변화한다. 왜냐하면, 유행의 초기에는 감염된 사람이 많이 없기때문에 감염력이 작겠지만 유행이 커질 수록 감염력도 커지기 때문이다. 이러한 감염력은 감염률 $\beta$과 모집단의 크기 대비 감염군 수의 비율($\frac{I}{N}$)를 곱한 형태로 주어진다. [1.1](#anchor2)에서 민감군의 변화량 계산에 사용되었던 값에 해당한다.
+
+\begin{equation}
+
+\lambda = \beta \frac{I}{N}
+
+\end{equation}
+
+감염력 $\lambda$를 이용하면 [1.1](#anchor2)에서 제시된 식들을 다음과 같이 간단하게 표현할 수 있다.
+
+\begin{equation}
+
+\frac{dS}{dt} = - \lambda S
+
+\end{equation}
+\begin{equation}
+
+\frac{dI}{dt} = \lambda S - \gamma I
+
+\end{equation}
+
+\begin{equation}
+
+\frac{dR}{dt} = \gamma I
+
+\end{equation}
+
+우리는 이 감염력을 통해 2가지 사례를 모형화할 수 있다:
+
+(i) 상수 $\lambda$를 갖는 SIR 모형
+(ii) 변화하는 $\lambda$를 갖는 SIR 모형
+
+다음 챕터 3에서 소개할 사례들은 유행 초기 아무도 회복된 사람이 없고, 1명의 감염군이 존재한다고 가정한다.
+
+<br>
+
+## 2 **Extensions of the basic model**
+***
+기본적인 SIR 모형의 확장은 다음과 같은 상황에 이루어진다:
+
+* 모집단 회전(turnover)
+* 백신 접종
+* 면역 약화
+
+위 세 요인들은 모집단의 민감성 변경인자들(modifiers of susceptibility)에 해당한다.
+
+### 2.1 모집단 회전 모형화
+많은 사례에서 면역을 얻은 사람들은 곧 신생아로 대체되며, 이들은 민감군에 속하게 된다. 따라서, 이러한 점을 모형에 반영할 필요가 있고, 모형화 과정을 간단하게 하기위해 질병으로부터 발생하는 사망은 무시한다.
+
+<br>
+
+```{r population turnover, echo = FALSE, fig.cap = "출처: https://towardsdatascience.com/extending-the-basic-sir-model-b6b32b833d76", fig.align = "center", out.width = "80%"}
+knitr::include_graphics("./figure/modeling population turnover.png")
+```
+
+해당 모형의 가정은 다음과 같다:
+
+* 각 구획의 모든 개인들은 동일한 사망률(background mortality)을 가짐
+* $b$는 신생아들이 민감군으로 진입하는 율(rate)을 의미
+
+모집단 회전에 관한 모델링을 위한 확장으로 미분 방정식에는 출생율 $b$와 사망률 $\mu$이 추가된다:
+
+\begin{equation}
+
+\frac{dS}{dt} = - \lambda S - \mu S + bN
+
+\end{equation}
+\begin{equation}
+
+\frac{dI}{dt} = \lambda S - \gamma I - \mu I
+
+\end{equation}
+
+\begin{equation}
+
+\frac{dR}{dt} = \gamma I - \mu R
+
+\end{equation}
+
+### 2.2 백신 효과 모형화
+$p$를 백신을 완벽하게 접종한 모집단의 비율이라 하자. $p$는 초기 상태(initial conditions)에서 회복군에 포함될 사람들의 비율을 반영해준다. 즉, 다음과 같은 방정식을 쓸 수 있다:
+
+\begin{equation}
+
+\frac{dS}{dt} = - \lambda S
+
+\end{equation}
+\begin{equation}
+
+\frac{dI}{dt} = \lambda S - \gamma I
+
+\end{equation}
+
+\begin{equation}
+
+\frac{dR}{dt} = \gamma I
+
+\end{equation}
+
+여기서 $t=0$에서 초기 상태는 $S = (1-p)(N-1)$, $I = 1$, $R = p(N-1)$에 해당한다. 앞서 챕터 2를 들어오기전에 감염군이 1명 존재한다고 가정했으므로 $N$이 아닌 $N-1$이 곱해지는 것이다. $S, I, R$을 모두 더해보면 $N$이 나올 것이다.
+
+#### 2.2.1 임계백신기준(critical vaccination threshold)
+전염병의 유행을 막기위해 꼭 모든 사람들이 백신 접종을 받을 필요는 없다. 이는 집단 면역때문인데, 집단 면역은 전염병의 전염을 방해할만한 충분한 면역력이 이루어진 것을 말한다. 집단면역을 이루기 위해 백신을 맞아야 하는 인구의 비율 $p_c$는 다음과 같이 계산된다:
+
+\begin{equation}
+
+p_c = 1 - \frac{1}{R_0}
+
+\end{equation}
+
+### 2.3 면역 약화 모형화
+면역 약화 모형화란, 사람들이 감염으로부터 회복되어 면역을 얻어도 해당 면역이 영구적이지 않은 경우를 모형화하는 것을 말한다. 이러한 사람들은 다시 민감군에 포함되야 할 것이다. 다음의 그림은 면역 약화를 반영한 SIR 모형을 표현한 것이며, $\sigma$가 약화 비율을 나타낸다.
+
+<br>
+
+```{r waning immunity, echo = FALSE, fig.cap = "출처:  https://towardsdatascience.com/extending-the-basic-sir-model-b6b32b833d76", fig.align = "center", out.width = "80%"}
+knitr::include_graphics("./figure/Waning immunity.png")
+```
+
+미분 방정식은 $\sigma$를 포함하여 다음과 같이 계산된다:
+
+\begin{equation}
+
+\frac{dS}{dt} = - \lambda S + \sigma R
+
+\end{equation}
+\begin{equation}
+
+\frac{dI}{dt} = \lambda S - \gamma I
+
+\end{equation}
+
+\begin{equation}
+
+\frac{dR}{dt} = \gamma I - \sigma R
+
+\end{equation}
+
+<br>
+
+## 3 **Tutorials with R**
+***
+R에서 SIR 모형의 적합은 {deSolve} 패키지를 통해 수행할 수 있다. 해당 패키지에는 1차 ordinary 미분 방정식(ODE) 시스템의 초깃값 문제를 풀어주는 함수가 포함되어있으며, SIR 모형의 시각화는 {ggplot2}를 이용할 것이다.
+
+### 3.0 패키지 불러오기
+```{r}
+library(tidyverse)
+```
+
+```{r, message = FALSE}
+library(deSolve)
+library(scales) # for the comma formatting
+ggplot2::theme_set(theme_minimal())
+loaded_package <- c("deSolve", "scales")
+.version <- map(loaded_package, packageVersion)
+names(.version) <- loaded_package
+.version
+```
+
+### 3.1 변화하는 $\lambda$를 갖는 SIR 모형
+첫 번째로는 변화하는 감염력 $\lambda$를 갖는 SIR 모형을 적합할 것이다. 모집단의 크기는 100만명, 유행 초기에는 오직 1명의 감염군만이 존재한다고 가정한다. 또한, 감염자는 평균 2일마다 1명씩 감염되고, 5일간 감염이 된다고 가정한다. 즉, 여기서 감염률 $\beta = 1/2 \ {\rm{day}}^{-1} = 0.5 \ {\rm{day}}^{-1}$, 회복률 $\gamma = 1/5 \ {\rm{day}}^{-1} = 0.2  \ {\rm{day}}^{-1}$ 이다. 향후 100일에 대해 모형화 한다.
+
+```{r}
+# Model inputs
+N <- 1000000
+initial_state_values <-  c(S = N-1, I = 1, R = 0)
+parameters <-  c(gamma = 0.20, beta = 0.5)
+
+# Time points
+time <- seq(1, 100, 1)
+
+# SIR model function 
+sir_simple <- function(time, state, parameters){
+    with(as.list(c(state, parameters)),{
+        N = S+I+R
+        lambda = beta*(I/N) 
+        dS = -lambda*S
+        dI = lambda*S-gamma*I
+        dR = gamma*I
+        
+        return(list(c(dS,dI,dR)))
+    }
+    )
+}
+
+# Solving the differential equations and making a tibble to visualize the result
+out_simple <- ode(y = initial_state_values, func = sir_simple, parms = parameters, times = time) %>% 
+    as_tibble %>% 
+    pivot_longer(S:R, names_to = "State") %>% 
+    arrange(desc(State)) %>% 
+    mutate(State = factor(State))
+```
+
+분석 결과 시각화 수행:
+```{r simple sir 1, message = FALSE, out.width = "80%", cache = TRUE}
+# To plot susceptible, infected and recovered individuals over time
+ggplot(out_simple,
+       aes(x = time, y = value, col = State)) +
+    geom_line() +
+    scale_y_continuous(label = comma) +
+    theme(legend.position = "bottom") +
+    xlab("Time (days)") + 
+    ylab("Poppulation")
+```
+
+```{r simple sir 2, message = FALSE, out.width = "80%", cache = TRUE}
+# To plot the proportion of susceptible, infected and recovered individuals over time
+ggplot(out_simple,
+       aes(x = time, y = value/N, col = State)) +
+    geom_line() +
+    theme(legend.position = "bottom") +
+    xlab("Time (days)") + 
+    ylab("Prevalence")
+```
+
+감염군의 수는 48일 전후로 피크를 찍는다.
+
+### 3.2 모집단 회전을 반영한 SIR 모형{#anchor3}
+모집단의 크기는 시간에 따라 변화하지 않는 상수 100만명으로 가정한다. 따라서, 출생율 $b$는 사망률 $\mu$와 동일하다. 그리고, 사망률은 일반적인 사람의 평균 수명인 70년으로 계산된다. 즉, $\mu = b = 1/70 \ {\rm{year}}^{-1}$ 이다. 또한, 감염률 $\beta = 2/5 \ 365{\rm{year}}^{-1} = 0.4 \ 365{\rm{year}}^{-1}$, 회복률 $\gamma = 1/5 \ 365{\rm{year}}^{-1} = 0.2  \ 365{\rm{year}}^{-1}$ 이다. 향후 400년에 대해 모형화 한다.
+```{r}
+# Model inputs
+N <- 1000000
+initial_state_values <-  c(S = N-1, I = 1, R = 0)
+parameters <-  c(gamma = 0.2*365, beta = 0.4*365, mu = 1/70, b = 1/70)
+
+# Time points
+time <- seq(1, 400, 1/365)
+
+# SIR model function 
+sir_turnover <- function(time, state, parameters){
+    with(as.list(c(state, parameters)),{
+        N=S+I+R
+        lambda=beta*(I/N)
+        dS=-lambda*S-mu*S+b*N
+        dI=lambda*S-gamma*I-mu*I
+        dR=gamma*I-mu*R
+        
+        return(list(c(dS,dI,dR)))
+    }
+    )
+}
+
+# Solving the differential equations and making a tibble to visualize the result
+out_turnover <- ode(y = initial_state_values, func = sir_turnover, parms = parameters, times = time) %>% 
+    as_tibble %>% 
+    pivot_longer(S:R, names_to = "State") %>% 
+    arrange(desc(State)) %>% 
+    mutate(State = factor(State))
+```
+
+분석 결과 시각화 수행:
+```{r turnover sir 1, message = FALSE, out.width = "80%"}
+# To plot susceptible, infected and recovered individuals over time
+ggplot(out_turnover,
+       aes(x = time, y = value, col = State)) +
+    geom_line() +
+    scale_y_continuous(label = comma) +
+    theme(legend.position = "bottom") +
+    xlab("Time (days)") + 
+    ylab("Poppulation")
+```
+
+```{r turnover sir 2, message = FALSE, out.width = "80%"}
+# To plot the proportion of susceptible, infected and recovered individuals over time
+ggplot(out_turnover,
+       aes(x = time, y = value/N, col = State)) +
+    geom_line() +
+    theme(legend.position = "bottom") +
+    xlab("Time (days)") + 
+    ylab("Prevalence")
+```
+
+### 3.2 백신 효과를 반영한 SIR 모형
+모집단의 40%가 백신을 맞았다고 하자. 이때 회복률 $\gamma = 0.1 \ {\rm{day}}^{-1}$, 감염률 $\beta = 0.4 \ {\rm{day}}^{-1}$에 해당한다. 향후 3년에 대해 모형화 한다.
+
+```{r}
+# Model inputs
+N <- 1000000
+p <- 0.4
+initial_state_values <-  c(S = (N-1)*(1-p), I = 1, R = (N-1)*p)
+parameters <-  c(gamma = 0.1, beta = 0.4)
+
+# Time points
+time <- seq(1, 3*365, 1)
+
+# SIR model function 
+sir_vaccination <- function(time, state, parameters){
+    with(as.list(c(state, parameters)),{
+          N=S+I+R
+          lambda=beta*(I/N)
+          dS=-lambda*S
+          dI=lambda*S-gamma*I
+          dR=gamma*I
+        
+        return(list(c(dS,dI,dR)))
+    }
+    )
+}
+
+# Solving the differential equations and making a tibble to visualize the result
+out_vaccination <- ode(y = initial_state_values, func = sir_vaccination, parms = parameters, times = time) %>% 
+    as_tibble %>% 
+    pivot_longer(S:R, names_to = "State") %>% 
+    arrange(desc(State)) %>% 
+    mutate(State = factor(State))
+```
+
+분석 결과 시각화 수행:
+```{r vaccination sir 1, message = FALSE, out.width = "80%"}
+# To plot susceptible, infected and recovered individuals over time
+ggplot(out_vaccination,
+       aes(x = time, y = value, col = State)) +
+    geom_line() +
+    scale_y_continuous(label = comma) +
+    theme(legend.position = "bottom") +
+    xlab("Time (days)") + 
+    ylab("Poppulation")
+```
+
+```{r vaccination sir 2, message = FALSE, out.width = "80%"}
+# To plot the proportion of susceptible, infected and recovered individuals over time
+ggplot(out_vaccination,
+       aes(x = time, y = value/N, col = State)) +
+    geom_line() +
+    theme(legend.position = "bottom") +
+    xlab("Time (days)") + 
+    ylab("Prevalence")
+```
+
+위 그림으로부터 우리는 인구의 40%가 백신 접종을 받았을 경우 전염병 유행이 인구의 약 12.5%까지 발생됨을 확인할 수 있다. 이러한 경우에 임계백신기준은 75%이며, 인구의 75%가 백신을 접종했을 경우에는 다음과 같이 유행을 막을 수 있다.
+```{r vaccination sir 3, message = FALSE, out.width = "80%"}
+p <- 0.75
+initial_state_values2 <-  c(S = (N-1)*(1-p), I = 1, R = (N-1)*p)
+out_vaccination2 <- ode(y = initial_state_values2, func = sir_vaccination, parms = parameters, times = time) %>% 
+    as_tibble %>% 
+    pivot_longer(S:R, names_to = "State") %>% 
+    arrange(desc(State)) %>% 
+    mutate(State = factor(State))
+
+ggplot(out_vaccination2,
+       aes(x = time, y = value/N, col = State)) +
+    geom_line() +
+    theme(legend.position = "bottom") +
+    xlab("Time (days)") + 
+    ylab("Prevalence")
+```
+
+### 3.3 면역 약화
+회복률 $\gamma = 0.2 \ {\rm{day}}^{-1}$, 감염률 $\beta = 0.4 \ {\rm{day}}^{-1}$, 평균 면역 기간을 10년으로 하여 약화율(waning rate) $\sigma = 1/10 {\rm{year}}^{-1}$이라 가정하자. 향후 50년에 대해 모형화한다.
+```{r}
+# Model inputs
+N <- 1000000
+initial_state_values <-  c(S = N-1, I = 1, R = 0)
+parameters <-  c(gamma = 0.2*365, beta = 0.4*365, sigma = 1/10)
+
+# Time points
+time <- seq(1, 50, 1/365)
+
+# SIR model function 
+sir_waning <- function(time, state, parameters){
+    with(as.list(c(state, parameters)),{
+          N=S+I+R
+          lambda=beta*(I/N)
+          dS=-lambda*S+sigma*R
+          dI=lambda*S-gamma*I
+          dR=gamma*I-sigma*R
+        
+        return(list(c(dS,dI,dR)))
+    }
+    )
+}
+
+# Solving the differential equations and making a tibble to visualize the result
+out_waning <- ode(y = initial_state_values, func = sir_waning, parms = parameters, times = time) %>% 
+    as_tibble %>% 
+    pivot_longer(S:R, names_to = "State") %>% 
+    arrange(desc(State)) %>% 
+    mutate(State = factor(State))
+```
+
+분석 결과 시각화 수행:
+```{r waning sir 1, message = FALSE, out.width = "80%"}
+# To plot susceptible, infected and recovered individuals over time
+ggplot(out_waning,
+       aes(x = time, y = value, col = State)) +
+    geom_line() +
+    scale_y_continuous(label = comma) +
+    theme(legend.position = "bottom") +
+    xlab("Time (days)") + 
+    ylab("Poppulation")
+```
+
+```{r waning sir 2, message = FALSE, out.width = "80%"}
+# To plot the proportion of susceptible, infected and recovered individuals over time
+ggplot(out_waning,
+       aes(x = time, y = value/N, col = State)) +
+    geom_line() +
+    theme(legend.position = "bottom") +
+    xlab("Time (days)") + 
+    ylab("Prevalence")
+```
+
+유병율 그림은 [모집단 회전을 반영한 SIR 모형](#anchor3)과 상당히 유사하다. 이는 모집단 회전 시나리오에서는 출생으로부터 신생아들이 민감군에 추가되지만, 면역 약화 시나리오의 경우는 면역력을 상실한 사람들이 민감군에 다시 추가되기 때문이다.
+
+<br>
+
+## 4 **Summary**
+***
+이번 글에서는 기본적인 SIR 모형과 여러 시나리오를 모형화할 수 있게 해주는 SIR 모형의 확장에 대해 소개하였다. 앞서 소개한 모든 매커니즘들을 결합하면, 집단 면역을 이루기 위한 인구 대비 백신 접종 비율 등과 같은 백신 접종 계획의 설립에 상당한 도움이 될 수 있다. 사실 실제 상황에서 좀 더 디테일한 시나리오 연구를 위해서는 이보다 더 복잡한 모형이 필요로 되지만, 전염병의 유행을 모델링하는 모형의 근본적 토대는 오늘 소개한 것에서 크게 벗어나지 않는다. 이 글을 잘 이해했다면, 더 복잡한 모형을 이해하는 것에도 큰 문제는 없을 것이라 생각한다.`r emo::ji("blush")`
+
+<br>
+
+## 5 **Reference** {#anchor1}
+***
+- [Extending the basic SIR Model in R](https://towardsdatascience.com/extending-the-basic-sir-model-b6b32b833d76)
