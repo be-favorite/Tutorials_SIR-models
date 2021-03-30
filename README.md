@@ -1,7 +1,7 @@
 # SIR 모형을 이용한 전염병 유행 모델링
 
 * How can we forecast COVID-19?: https://robjhyndman.com/hyndsight/forecasting-covid19/
-* SIR 모형 소개 및 R을 이용한 튜토리얼: https://github.com/be-favorite/Tutorials_SIR-models/Tutorials_SIR.html
+* SIR 모형 소개 및 R을 이용한 튜토리얼: https://be-favorite.github.io/Tutorials_SIR-models/Tutorials_SIR.html
 
 ## Introduction
 전염병 유행의 모형화에 초석이 되는 대표적 모형 SIR(Susceptible-Infected-Recovered) 모형에 대해 소개합니다. COVID-19로 인한 팬데믹 상황의 지속으로 COVID-19 일별 확진자에 대한 예측 모델링에 관심이 있는 분들이 많을거라 생각되는데, 전염병 확진자와 관련한 예측 모델링을 확진자의 수가 단순히 시간 순서로 관측된다고 하여 시계열 모형으로 모델링을 하는 행위는 지양해야 합니다. 그 이유가 궁금하다면, 시계열 분석의 대가라 할 수 있는 Hyndman이 개인 블로그에 기술한 글([How can we forecast COVID-19?](https://robjhyndman.com/hyndsight/forecasting-covid19/))을 천천히 읽어보시면 됩니다.😊 해당 글의 결론은 어쨌든 전염병 유행에 따른 확진자 수 등에 관한 모델링에는 SIR 모형과 같이 전염병과 관련한 예측(e.g. 확진자 수)을 목적으로 만들어진 수학적 모형으로 수행하는 것이 훨씬 더 좋은 예측 성능을 낼 수 있다는 것입니다. 
