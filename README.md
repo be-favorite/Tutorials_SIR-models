@@ -1,4 +1,4 @@
-# 결정론적 SIR 모형을 이용한 전염병 유행 모델링
+# 결정론적 SIR 모형을 이용한 감염병 유행 모델링
 
 - 🔗 [How can we forecast COVID-19?](https://robjhyndman.com/hyndsight/forecasting-covid19/)
 - 🔗 [Introduction to deterministic SIR and SEIR models](https://be-favorite.tistory.com/85)
